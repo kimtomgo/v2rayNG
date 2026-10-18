@@ -96,14 +96,21 @@ jobs:
     #     ./gradlew licenseFdroidReleaseReport
     #     ./gradlew assembleRelease -Pandroid.injected.signing.store.file=${{ steps.android_keystore.outputs.filePath }} -Pandroid.injected.signing.store.password=${{ secrets.APP_KEYSTORE_PASSWORD }} -Pandroid.injected.signing.key.alias=${{ secrets.APP_KEYSTORE_ALIAS }} -Pandroid.injected.signing.key.password=${{ secrets.APP_KEY_PASSWORD }}
 
+    - name: Build test APK
+      id: build_test_apk
+      run: |
+        cd "${GITHUB_WORKSPACE}/V2rayNG"
+        echo "sdk.dir=${ANDROID_HOME}" > local.properties
+        chmod 755 gradlew
+        ./gradlew :app:assemblePlaystoreDebug --stacktrace --info
+
     - name: Locate generated APKs
       if: always()
       run: |
         echo "=== APK files ==="
         find . -type f -name "*.apk" -print
-        echo "=== Gradle build outputs ==="
-        find V2rayNG/app/build/outputs -maxdepth 5 -type f -print 2>/dev/null || true
-
+        echo "=== Gradle output files ==="
+        find V2rayNG/app/build/outputs -type f -print 2>/dev/null || true
         
     - name: Upload test APK
       if: success()
