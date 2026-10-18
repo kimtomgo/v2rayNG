@@ -57,6 +57,7 @@ android {
         }
         create("playstore") {
             dimension = "distribution"
+            applicationIdSuffix = ".shizuku"
             buildConfigField("String", "DISTRIBUTION", "\"Play Store\"")
         }
     }
