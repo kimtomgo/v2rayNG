@@ -9,7 +9,7 @@ on:
   push:
     branches:
       - master
-
+      - shizuku-tethering
 permissions:
   contents: write
 
