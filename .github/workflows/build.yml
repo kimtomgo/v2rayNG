@@ -95,15 +95,52 @@ jobs:
     #     chmod 755 gradlew
     #     ./gradlew licenseFdroidReleaseReport
     #     ./gradlew assembleRelease -Pandroid.injected.signing.store.file=${{ steps.android_keystore.outputs.filePath }} -Pandroid.injected.signing.store.password=${{ secrets.APP_KEYSTORE_PASSWORD }} -Pandroid.injected.signing.key.alias=${{ secrets.APP_KEYSTORE_ALIAS }} -Pandroid.injected.signing.key.password=${{ secrets.APP_KEY_PASSWORD }}
+    - name: Restore fixed debug keystore
+      env:
+        DEBUG_KEYSTORE_BASE64: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
+        DEBUG_KEYSTORE_PASSWORD: ${{ secrets.DEBUG_KEYSTORE_PASSWORD }}
+        DEBUG_KEY_ALIAS: ${{ secrets.DEBUG_KEY_ALIAS }}
+      run: |
+        set -euo pipefail
 
+        test -n "$DEBUG_KEYSTORE_BASE64"
+        mkdir -p "$HOME/.android"
+
+        printf '%s' "$DEBUG_KEYSTORE_BASE64" \
+          | base64 --decode \
+          > "$HOME/.android/v2rayng-debug.keystore"
+
+        test -s "$HOME/.android/v2rayng-debug.keystore"
+
+        keytool -list \
+          -keystore "$HOME/.android/v2rayng-debug.keystore" \
+          -storepass "$DEBUG_KEYSTORE_PASSWORD" \
+          -alias "$DEBUG_KEY_ALIAS" >/dev/null
+
+        echo "DEBUG_KEYSTORE_PATH=$HOME/.android/v2rayng-debug.keystore" >> "$GITHUB_ENV"
+        
     - name: Build test APK
       id: build_test_apk
+      env:
+        DEBUG_KEYSTORE_PASSWORD: ${{ secrets.DEBUG_KEYSTORE_PASSWORD }}
+        DEBUG_KEY_PASSWORD: ${{ secrets.DEBUG_KEY_PASSWORD }}
+        DEBUG_KEY_ALIAS: ${{ secrets.DEBUG_KEY_ALIAS }}
       run: |
+        set -euo pipefail
         cd "${GITHUB_WORKSPACE}/V2rayNG"
         echo "sdk.dir=${ANDROID_HOME}" > local.properties
         chmod 755 gradlew
+
         ./gradlew :app:assemblePlaystoreDebug --stacktrace --info
 
+        APK=$(find app/build/outputs/apk/playstore/debug \
+          -type f -name '*.apk' | head -n 1)
+
+        test -n "$APK"
+
+        "$ANDROID_HOME/build-tools/37.0.0/apksigner" \
+          verify --print-certs "$APK"
+          
     - name: Locate generated APKs
       if: always()
       run: |

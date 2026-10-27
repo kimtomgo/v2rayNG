@@ -39,8 +39,35 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        val debugKeystorePath = System.getenv("DEBUG_KEYSTORE_PATH")
+        val debugKeystorePassword = System.getenv("DEBUG_KEYSTORE_PASSWORD")
+        val debugKeyAlias = System.getenv("DEBUG_KEY_ALIAS")
+        val debugKeyPassword = System.getenv("DEBUG_KEY_PASSWORD")
+    
+        if (
+            !debugKeystorePath.isNullOrBlank() &&
+            !debugKeystorePassword.isNullOrBlank() &&
+            !debugKeyAlias.isNullOrBlank() &&
+            !debugKeyPassword.isNullOrBlank()
+        ) {
+            create("fixedDebug") {
+                storeFile = file(debugKeystorePath)
+                storePassword = debugKeystorePassword
+                keyAlias = debugKeyAlias
+                keyPassword = debugKeyPassword
+            }
+        }
+    }
+    
     buildTypes {
-        release {
+        getByName("debug") {
+            signingConfigs.findByName("fixedDebug")?.let {
+                signingConfig = it
+            }
+        }
+    
+        getByName("release") {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
